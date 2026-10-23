@@ -1,0 +1,22 @@
+# Never bake real data or secrets into the image - these all live on the host only.
+# (COPY . . in the Dockerfile would otherwise include every one of these.)
+
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Real company data - photos, documents, database dumps
+uploads_live/
+uploads_demo/
+backups/
+private_exports/
+*.dump
+
+# Secrets - loaded at container runtime via env_file in docker-compose.yml, never baked in
+.env
+.env.live
+.env.demo
+
+*.log
+.DS_Store

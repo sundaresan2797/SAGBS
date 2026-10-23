@@ -1,0 +1,5 @@
+# Never bake these into the image - installed fresh/loaded at runtime instead.
+node_modules/
+dist/
+.env
+.DS_Store

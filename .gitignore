@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+
+# Docker Compose (host ports - see .env.example)
+/.env
+
+# Backend
+backend/.env
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Real data must never be shared by accident: database backups and the demo copy's files
+backend/backups/
+backend/uploads_demo/
+*.dump
+
+# Node
+node_modules/
+frontend/dist/
+frontend/.env
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Logs
+*.log
+
+# Private: real settings, exports with passwords, live uploads, backups
+backend/.env.live
+backend/.env.demo
+backend/private_exports/
+backend/uploads_live/
+backend/uploads_demo/
+backend/backups/

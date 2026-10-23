@@ -1,0 +1,81 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ems_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: employee_management
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: ems_redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    container_name: ems_backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/employee_management
+      DATABASE_URL_SYNC: postgresql+psycopg2://postgres:postgres@postgres:5432/employee_management
+      REDIS_URL: redis://redis:6379/0
+      # Must track FRONTEND_PORT below - the browser's origin when it loads the frontend container is
+      # what the backend has to allow, regardless of which port that container is published on.
+      CORS_ORIGINS: http://localhost:${FRONTEND_PORT:-5173}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      # Must match UPLOAD_DIR in backend/.env (currently uploads_live) and the Dockerfile's mkdir -
+      # a mismatch here means uploaded files land outside this persisted volume and silently vanish
+      # on the next container restart or rebuild.
+      - uploads_data:/app/uploads_live
+    command: >
+      sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: ems_frontend
+    restart: unless-stopped
+    env_file:
+      - ./frontend/.env
+    environment:
+      # The browser calls this container's own /api, which forwards to the backend by its service name -
+      # so the app works from any device that can reach the frontend's published port (FRONTEND_PORT,
+      # see .env), not only from this machine.
+      VITE_API_BASE_URL: /api/v1
+      BACKEND_URL: http://backend:8000
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+
+volumes:
+  postgres_data:
+  uploads_data:
